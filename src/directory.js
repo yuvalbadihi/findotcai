@@ -48,12 +48,13 @@ export function selectEntries(
   const query = search.trim().replace(/^@/, '').toLocaleLowerCase();
   const result = entries.filter((entry) => {
     const languages = entryLanguages(entry.language);
-    const text = `${entry.group.title} ${entry.group.username || ''} ${languages
-      .map((item) => `${item.label} ${item.code}`)
-      .join(' ')}`;
+    // Search matches names only: the title or the @username shown on the card.
+    const named = [entry.group.title, entry.group.username || ''].some(
+      (name) => name.toLocaleLowerCase().includes(query),
+    );
     const cost = entry.group.starsPerMessage;
     return (
-      text.toLocaleLowerCase().includes(query) &&
+      named &&
       (language === 'all' ||
         (language === 'multiple'
           ? languages.length > 1

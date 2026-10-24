@@ -30,14 +30,16 @@ test('sorts use numeric costs and Gram valuations, putting unknown values last',
   assert.equal(entries[0].group.username,'freemarket');
 });
 
-test('language searches and filters include every qualifying language, and activity sorting uses daily counts', () => {
+test('search matches names only, the language filter includes every qualifying language, and activity sorting uses daily counts', () => {
   const chats = [
     {...entries[0],language:{status:'estimated',code:'eng',label:'English',languages:[{code:'eng',label:'English',share:70},{code:'rus',label:'Russian',share:30}]},activity:{messagesPerDay:12}},
     {...entries[1],language:{status:'estimated',code:'rus',label:'Russian',languages:[{code:'rus',label:'Russian',share:100}]},activity:{messagesPerDay:50}},
     {...entries[2],language:{status:'unavailable',code:null,label:null,languages:[]},activity:{messagesPerDay:3}},
     {...entry('World market','world',0,50,null),language:{status:'estimated',code:'eng',label:'English',languages:[{code:'eng',label:'English',share:40},{code:'rus',label:'Russian',share:35}],topLanguages:[{code:'eng',label:'English'},{code:'rus',label:'Russian'},{code:'hin',label:'Hindi'}]}},
   ];
-  assert.deepEqual(selectEntries(chats,{search:'russian'}),[chats[0],chats[1],chats[3]]);
+  assert.deepEqual(selectEntries(chats,{search:'russian'}),[]);
+  assert.deepEqual(selectEntries(chats,{search:'eng'}),[]);
+  assert.deepEqual(selectEntries(chats,{search:'world'}),[chats[3]]);
   assert.deepEqual(selectEntries(chats,{language:'rus'}),[chats[0],chats[1],chats[3]]);
   assert.deepEqual(selectEntries(chats,{language:'eng'}),[chats[0],chats[3]]);
   assert.deepEqual(selectEntries(chats,{language:'eng',price:'free'}),[chats[3]]);

@@ -18,7 +18,6 @@ function likeButton(entry, options) {
     'aria-label',
     `${liked ? 'Unlike' : 'Like'} ${entry.group.title} · ${formatNumber(count)} ${count === 1 ? 'like' : 'likes'}`,
   );
-  like.title = liked ? 'Remove your like' : 'Like this OTC';
   like.disabled =
     options.disabled ||
     options.pending ||
@@ -53,11 +52,9 @@ export function createCard(entry, options) {
     name.href = `https://t.me/${username}`;
     name.target = '_blank';
     name.rel = 'noopener noreferrer';
-    name.title = `Open ${group.title} in Telegram`;
   }
   const price = element('span', 'price');
   price.dataset.metric = 'price';
-  price.title = 'Stars per message for a general user';
   if (group.starsPerMessage === null)
     price.append(element('span', '', 'Unknown'));
   else if (group.starsPerMessage === 0)
@@ -70,7 +67,6 @@ export function createCard(entry, options) {
     );
   const cycle = element('button', 'card-view');
   cycle.type = 'button';
-  cycle.title = `Switch this card to ${nextMode(mode)} view`;
   cycle.setAttribute(
     'aria-label',
     `Switch ${group.title} to ${nextMode(mode)} view`,
@@ -115,7 +111,6 @@ export function createCard(entry, options) {
     );
     if (language) {
       const tag = element('span', 'compact-language', language);
-      tag.title = `Chat languages: ${language}`;
       tag.dataset.metric = 'language';
       strip.append(tag);
     }

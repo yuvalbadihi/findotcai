@@ -25,10 +25,9 @@ function icon(name) {
   svg.append(use);
   return svg;
 }
-function stat(name, text, title, className = '') {
+function stat(name, text, label, className = '') {
   const node = element('span', className);
-  node.title = title;
-  node.setAttribute('aria-label', `${title}: ${text}`);
+  node.setAttribute('aria-label', `${label}: ${text}`);
   node.dataset.metric = name;
   node.append(icon(name), element('span', '', text));
   return node;

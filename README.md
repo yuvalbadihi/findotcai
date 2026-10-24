@@ -19,8 +19,10 @@ Compact cards prioritize posting price, likes, messages/day and admin gift value
 Normal cards add members, admin gift count, known language and estimate age. Large
 cards show the exact gift value/count, members, daily activity, language and last
 post once, plus an Open chat action. Technical scan reports stay out of the cards.
-The UI has no app-name heading or separate dashboard sections. The shared list
-contains real, verified public OTCs; no example marketplaces enter live results.
+The UI has no app-name heading, separate dashboard sections, hover effects or
+tooltips. The search box matches OTC names only: the group title or @username.
+The shared list contains real, verified public OTCs; no example marketplaces enter
+live results.
 
 The **+** button beside the list controls opens Telegram's native group/admin
 picker for `@FindOTCAi`, requesting only `manage_chat`. Choose the OTC and confirm
@@ -51,9 +53,9 @@ Cards show messages/day as the observed count in the rolling last 24 hours. Chat
 languages are estimated from new message text/captions in the last seven days using
 a bundled local detector. Text is not stored or sent to a language service. The most
 common detected language is always shown, and others are added once they reach 30%
-of identifiable messages. Without identifiable text, cards omit the language. Search
-accepts a language name, and the language filter (including Multiple languages) can
-be combined with posting-price filters.
+of identifiable messages. Without identifiable text, cards omit the language. The
+language filter (including Multiple languages) can be combined with posting-price
+filters.
 
 Every card has a heart button and public like count. A verified Telegram user can
 like each listed OTC once and remove their like. Likes persist across sessions;

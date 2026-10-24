@@ -26,11 +26,11 @@
       <header class="toolbar">
         <div class="search-field">
           <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
-          <input id="search" type="search" placeholder="Search OTCs or language" aria-label="Search OTCs or language" autocomplete="off" spellcheck="false" />
+          <input id="search" type="search" placeholder="Search OTCs" aria-label="Search OTCs" autocomplete="off" spellcheck="false" />
           <button id="clear-search" class="clear-search" type="button" aria-label="Clear search" hidden><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
         </div>
-        <button id="filter-toggle" class="round-button" type="button" aria-label="Show filters" aria-expanded="false" aria-controls="filters" title="Filters"><svg class="icon" aria-hidden="true"><use href="#i-filter"/></svg><span class="filter-dot" hidden></span></button>
-        <button id="settings-toggle" class="round-button" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings" title="Settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg></button>
+        <button id="filter-toggle" class="round-button" type="button" aria-label="Show filters" aria-expanded="false" aria-controls="filters"><svg class="icon" aria-hidden="true"><use href="#i-filter"/></svg><span class="filter-dot" hidden></span></button>
+        <button id="settings-toggle" class="round-button" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg></button>
       </header>
       <section class="settings" id="settings" aria-label="Settings" hidden>
         <div class="filter-row"><span class="filter-label">Theme</span><div class="segmented" role="group" aria-label="Theme"><button type="button" data-theme-choice="light" aria-pressed="false">Day</button><button type="button" data-theme-choice="dark" aria-pressed="false">Night</button><button type="button" data-theme-choice="device" aria-pressed="true">Device</button></div></div>
@@ -43,7 +43,7 @@
         <div class="filter-row"><label class="filter-label" for="sort">Sort by</label><select id="sort"><option value="rank">Recommended</option><option value="likes">Most liked</option><option value="price">Lowest posting price</option><option value="members">Most members</option><option value="value">Highest admin gift value</option><option value="activity">Most messages / day</option></select></div>
         <button id="reset-filters" class="text-button" type="button">Reset filters</button>
       </section>
-      <div class="list-heading"><h1>EXPLORE</h1><div class="list-tools"><span id="result-count"></span><a id="add-otc" class="add-otc" href="https://t.me/FindOTCAi?startgroup&amp;admin=manage_chat" target="_blank" rel="noopener noreferrer" aria-label="Add your OTC" title="Add your OTC"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></a></div></div>
+      <div class="list-heading"><h1>EXPLORE</h1><div class="list-tools"><span id="result-count"></span><a id="add-otc" class="add-otc" href="https://t.me/FindOTCAi?startgroup&amp;admin=manage_chat" target="_blank" rel="noopener noreferrer" aria-label="Add your OTC"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></a></div></div>
       <p id="status" class="status" role="status" aria-live="polite"></p>
       <section class="cards" id="cards" aria-label="OTC results"></section>
       <div id="empty-state" class="empty-state" hidden><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><strong id="empty-title">No OTCs found</strong><p id="empty-description">Try another search or change your filters.</p><button id="empty-reset" class="text-button" type="button">Clear search &amp; filters</button></div>

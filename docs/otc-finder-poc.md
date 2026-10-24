@@ -37,6 +37,13 @@ displayed as page branding. The directory currently contains only Free Market.
 
 ## Authorized pilot
 
+### Search and hover cleanup — 2026-10-24
+
+The search box reads "Search OTCs" and matches names only: the group title or
+@username. Language remains available as a filter. Hover colour changes and
+tooltips are gone everywhere: on touch screens a tapped control kept its hover
+colour, so an unliked heart could stay blue. Screen-reader labels remain.
+
 ### Verification and likes fixes — 2026-10-24
 
 - Likes use the directory's listing rule, so an OTC stays likeable while its
