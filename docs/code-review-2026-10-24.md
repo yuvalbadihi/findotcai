@@ -1,8 +1,8 @@
 ﻿# Deep code review — 24 October 2026
 
-Completed and deployed to **@FindOTCAi**, revision **13**. The local project name
-remains `xBadiBot`. Reviewed enrollment, event ordering, permissions, gifts/pricing,
-telemetry, schema integrity, authentication, public reads, likes and browser state.
+Completed and deployed to **@FindOTCAi**, revision **13**. Reviewed enrollment,
+event ordering, permissions, gifts/pricing, telemetry, schema integrity,
+authentication, public reads, likes and browser state.
 
 ## Findings and fixes
 

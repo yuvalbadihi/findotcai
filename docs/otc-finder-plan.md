@@ -2,9 +2,8 @@
 
 Status: planning reference with a small live POC. Updated: 2026-10-24.
 
-**Keep the local project name `xBadiBot`.** The user selected `@FindOTCAi`
-(bot ID `8731206462`) to replace the original bot on 2026-10-24. OTC Finder is
-the working name of the proposed product. The user has authorized a small,
+The active bot is `@FindOTCAi` (bot ID `8731206462`), which replaced the original
+bot on 2026-10-24. OTC Finder is the working name of the proposed product. The user has authorized a small,
 silent monitoring POC for `@freemarket`; see [POC notes](otc-finder-poc.md).
 The directory now supports verified bot-admin enrollment through Telegram's native
 group picker. Calculated rankings remain future work.

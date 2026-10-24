@@ -1,7 +1,7 @@
 # OTC monitoring POC
 
-Implemented on 2026-10-18 with the original **xBadiBot** bot. The local project
-name remains unchanged; the active bot is now **@FindOTCAi**.
+Implemented on 2026-10-18 with the original bot; the active bot is now
+**@FindOTCAi**.
 
 ## Bot migration — 2026-10-24
 
@@ -298,7 +298,7 @@ arbitrary visitors cannot submit a chat ID to start collection.
 
 ## What is live
 
-- Mini App stats at <https://app8968270954.tgcloud.ai/>. Open from `/app` in a
+- Mini App stats at <https://app8731206462.tgcloud.ai/>. Open from `/app` in a
   private chat with the bot for Telegram-authenticated data access.
 - Read-only chat metadata, admin verification, and Stars/message.
 - New observed human message counts, distinct identifiable posters, last message

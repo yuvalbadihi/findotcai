@@ -10,7 +10,7 @@ test('group commands, service events, unrelated chats, and channel posts never p
   const f = await fixture();
   try {
     await f.otc.refreshPilot();
-    for (const text of ['/start', '/app', '/app@xBadiBot', '/top']) await f.handler({ ...event(f), text });
+    for (const text of ['/start', '/app', '/app@FindOTCAi', '/top']) await f.handler({ ...event(f), text });
     await f.handler({ chat, message_id: 3, date: f.now(), new_chat_members: [] });
     await f.handler({ ...event(f), chat: { id: -99, type: 'group' } });
     await f.handler({ ...event(f), chat: { id: -99, type: 'channel' } });

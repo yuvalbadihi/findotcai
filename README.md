@@ -1,9 +1,9 @@
-# xBadiBot
+# FindOTCAi
 
-A Telegram Mini App and silent OTC monitoring POC. The local project remains
-`xBadiBot`; the active Telegram bot is [@FindOTCAi](https://t.me/FindOTCAi)
-(ID `8731206462`). OTC Finder is the planned product. Monitoring started with
-`@freemarket`; other groups enroll when their administrators add the bot as admin.
+A Telegram Mini App and silent OTC monitoring POC for the Telegram bot
+[@FindOTCAi](https://t.me/FindOTCAi) (ID `8731206462`). OTC Finder is the planned
+product. Monitoring started with `@freemarket`; other groups enroll when their
+administrators add the bot as admin.
 
 The Mini App is a single-page directory with search, free/paid and language filters, sorting,
 and compact/normal/large cards. The toolbar's settings gear, or Settings in the
