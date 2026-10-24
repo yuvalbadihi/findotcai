@@ -1,8 +1,8 @@
 import { db } from 'sdk';
 import { sql } from 'sdk/db';
-import { refreshChat, nowSeconds } from './chat-state.js';
+import { refreshChat, nowSeconds, isAdmin } from './chat-state.js';
 import { scanAdmins } from './gift-inventory.js';
-import { MESSAGE_RETENTION } from './otc-config.js';
+import { MESSAGE_RETENTION, RENEW_AHEAD } from './otc-config.js';
 
 async function claim(key, seconds) {
   const now = nowSeconds();
@@ -33,17 +33,23 @@ export async function maintainDirectory({ metadataOnly = false } = {}) {
   let changed = false;
   await pruneTelemetry();
   if (await claim('metadata_sync', 5)) {
+    // The collection rule: renew a current verification during its last
+    // RENEW_AHEAD seconds and anything else once due. The claim re-checks it,
+    // so a renewal another worker has just finished is not repeated.
+    const now = nowSeconds();
     const row =
-      await db.get(sql`SELECT chat_id FROM otcs WHERE bot_status IN ('administrator','creator','unverified')
-      AND refresh_after<=${nowSeconds() + 30} AND metadata_lease_until<=${nowSeconds()}
-      ORDER BY refresh_after,chat_id LIMIT 1`);
+      await db.get(sql`SELECT chat_id,bot_status,checked_at FROM otcs WHERE bot_status IN ('administrator','creator','unverified')
+      AND metadata_lease_until<=${now} AND refresh_after<=${now}+CASE WHEN bot_status IN ('administrator','creator')
+      AND checked_at>0 THEN ${RENEW_AHEAD} ELSE 0 END ORDER BY refresh_after,chat_id LIMIT 1`);
     if (row) {
       try {
-        await refreshChat(row.chat_id, { force: true });
-        changed = true;
+        await refreshChat(row.chat_id, {
+          ahead: isAdmin(row.bot_status) && row.checked_at > 0 ? RENEW_AHEAD : 0,
+        });
       } catch {
-        changed = true; /* Failure already invalidated this generation's verification. */
+        /* The failure is recorded on the row: kept, paused or backed off. */
       }
+      changed = true;
     }
   }
   if (!metadataOnly) {

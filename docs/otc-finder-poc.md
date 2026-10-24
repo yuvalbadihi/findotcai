@@ -42,15 +42,19 @@ displayed as page branding. The directory currently contains only Free Market.
 - Likes use the directory's listing rule, so an OTC stays likeable while its
   five-minute verification is between refreshes. Known removals still reject
   new likes at once.
-- Collection renews a verification during its last minute. Messages arriving
-  during the renewal count under the current verification, and a renewal no
-  longer invalidates messages or admin scans already in progress. A failed early
-  renewal keeps the current verification until it lapses. After a lapse,
-  messages arriving during re-verification are still skipped: collection never
-  runs on an expired verification.
-- Failed verifications back off from one minute towards six hours while failures
-  persist, so departed or deleted groups stop consuming the shared maintenance
-  refresh. A membership event still re-verifies at once.
+- Collection and maintenance renew a verification during its last minute.
+  Messages arriving during the renewal count under the current verification,
+  and neither a renewal nor a paid-price change invalidates messages or admin
+  scans already in progress. A temporary failure keeps the current verification
+  until it lapses. After a lapse, messages arriving during re-verification are
+  still skipped: collection never runs on an expired verification.
+- After a lapse, a temporary failure (rate limit, server error, timeout) retries
+  within a minute, or after Telegram's retry_after. Lost access (400 or 403)
+  pauses collection at once and backs off towards six hours, so departed or
+  deleted groups stop consuming the shared maintenance refresh; a membership
+  event still re-verifies at once.
+- A membership event dated slightly ahead of the server clock no longer blocks
+  the verification that follows it.
 
 ### Self-service OTC enrollment — 2026-10-24
 

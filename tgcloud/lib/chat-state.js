@@ -53,13 +53,16 @@ export async function refreshChat(chatId, { force = false, ahead = 0 } = {}) {
   if (!claim.rows?.length) return await getChatRow(chatId);
   const job = claim.rows[0];
   const version = job.revision;
+  // Later membership events bump the revision. The date check also accepts an
+  // event dated slightly ahead of this clock that was recorded before the claim.
+  const eventCutoff = Math.max(started, job.status_event_at);
   try {
     const me = await api.getMe({});
     const member = await api.getChatMember({ chat_id: chatId, user_id: me.id });
     if (!isAdmin(member.status)) {
       await db.run(sql`UPDATE otcs SET bot_status=${member.status}, active_since=0,
         metadata_lease_until=0,refresh_after=${started + METADATA_TTL},admin_scan_version=admin_scan_version+1
-        WHERE chat_id=${chatId} AND revision=${version} AND metadata_lease_until=${lease} AND status_event_at<=${started}`);
+        WHERE chat_id=${chatId} AND revision=${version} AND metadata_lease_until=${lease} AND status_event_at<=${eventCutoff}`);
       return await getChatRow(chatId);
     }
     const chat = await api.getChat({ chat_id: chatId });
@@ -82,27 +85,41 @@ export async function refreshChat(chatId, { force = false, ahead = 0 } = {}) {
       stars_per_message=CASE WHEN price_event_at<=${started} THEN ${price} ELSE stars_per_message END,
       bot_status=${member.status},checked_at=${now},refresh_after=${now + METADATA_TTL},metadata_lease_until=0,
       active_since=CASE WHEN active_since>0 THEN active_since ELSE ${now} END
-      WHERE chat_id=${chatId} AND revision=${version} AND metadata_lease_until=${lease} AND status_event_at<=${started}`);
+      WHERE chat_id=${chatId} AND revision=${version} AND metadata_lease_until=${lease} AND status_event_at<=${eventCutoff}`);
     return await getChatRow(chatId);
   } catch (error) {
-    // Only the holder of this job can fail or complete it. A failed early
-    // renewal keeps the verification it was renewing and retries shortly, at
-    // the latest when that verification lapses.
+    // Only the holder of this job can fail or complete it. Telegram answers 400
+    // or 403 once the bot has lost access to the chat; rate limits, server
+    // errors and timeouts are temporary.
     const now = nowSeconds();
+    const lostAccess = error?.code === 400 || error?.code === 403;
     if (
+      !lostAccess &&
       isAdmin(job.bot_status) &&
       job.checked_at > 0 &&
       job.refresh_after > now
     ) {
+      // A temporary failure keeps the verification it was renewing and
+      // retries shortly, at the latest when that verification lapses.
       await db.run(sql`UPDATE otcs SET metadata_lease_until=${Math.min(now + 30, job.refresh_after)}
         WHERE chat_id=${chatId} AND revision=${version} AND metadata_lease_until=${lease}`);
       throw error;
     }
-    // Otherwise pause collection. Retries back off from a minute towards six
-    // hours while failures persist, so a departed group stops costing a refresh
-    // every minute; a membership event still re-verifies at once.
+    // Otherwise pause collection. A temporary failure retries after a minute,
+    // or Telegram's retry_after. Lost access backs off towards six hours as it
+    // persists, so a departed group stops costing a refresh every minute; the
+    // bot can only regain access through a membership event, which re-verifies
+    // at once.
     const since = Math.max(job.checked_at, job.status_event_at, job.started_at);
-    const wait = Math.max(60, Math.min(21600, Math.floor((now - since) / 4)));
+    const wait = Math.max(
+      60,
+      Math.min(
+        21600,
+        lostAccess
+          ? Math.floor((now - since) / 4)
+          : Number(error?.parameters?.retry_after) || 0,
+      ),
+    );
     await db.run(sql`UPDATE otcs SET bot_status='unverified',active_since=0,
       metadata_lease_until=0,refresh_after=${now + wait}
       WHERE chat_id=${chatId} AND revision=${version} AND metadata_lease_until=${lease}`);
@@ -114,11 +131,13 @@ export async function currentChat(chatId, { refreshMetadata = true } = {}) {
   let row = await getChatRow(chatId);
   if (!row) return null;
   // Renew a current verification shortly before it lapses, so messages that
-  // arrive during the renewal are still covered by it.
+  // arrive during the renewal are still covered by it. A renewal already in
+  // progress holds the lease, so there is no claim to attempt.
   const ahead = verifiedAdmin(row) ? RENEW_AHEAD : 0;
   if (
     refreshMetadata &&
     row.refreshAfter <= nowSeconds() + ahead &&
+    row.metadataLeaseUntil <= nowSeconds() &&
     ['administrator', 'creator', 'unverified'].includes(row.botStatus)
   ) {
     try {
@@ -170,8 +189,9 @@ export async function membershipChanged(update, updateId = 0) {
 export async function priceChanged(chatId, price, date, updateId = 0) {
   if (!Number.isSafeInteger(price) || price < 0) return;
   const id = Number.isSafeInteger(updateId) && updateId > 0 ? updateId : 0;
-  await db.run(sql`UPDATE otcs SET stars_per_message=${price},price_event_at=${date},price_update_id=${id},
-    revision=revision+1,metadata_lease_until=0
+  // A refresh in progress keeps this newer price through price_event_at, so
+  // the change need not cancel it, an admin scan or messages being stored.
+  await db.run(sql`UPDATE otcs SET stars_per_message=${price},price_event_at=${date},price_update_id=${id}
     WHERE chat_id=${chatId} AND (price_event_at<${date} OR
       (price_event_at=${date} AND (${id}>price_update_id OR (${id}=0 AND price_update_id=0))))`);
 }

@@ -32,6 +32,9 @@ async function until(predicate) {
 }
 const messageCount = (f) =>
   f.sqlite.prepare('SELECT count(*) AS n FROM otc_messages').get().n;
+const telegramError = (code, parameters) => async () => {
+  throw Object.assign(new Error(`Telegram ${code}`), { code, parameters });
+};
 
 test('same-second membership events use update IDs, and a later date tolerates ID restart', async () => {
   const f = await fixture();
@@ -127,12 +130,12 @@ test('messages keep flowing while a verification is renewed before it lapses', a
   }
 });
 
-test('a failed early renewal keeps the current verification until it lapses', async () => {
+test('a temporary failure during early renewal keeps the current verification until it lapses', async () => {
   const f = await fixture();
   try {
     await f.otc.refreshPilot();
     f.advance(270);
-    f.state.metadataError = true;
+    f.state.onGetChat = telegramError(429);
     const attempts = () =>
       f.calls.filter((call) => call.method === 'getChat').length;
     await f.handler(event(f));
@@ -146,10 +149,90 @@ test('a failed early renewal keeps the current verification until it lapses', as
     f.advance(21);
     await f.handler(event(f, 3));
     assert.equal(messageCount(f), 2);
+    const row = await f.chatState.getChatRow(chatId);
+    assert.equal(row.botStatus, 'unverified');
+    assert.equal(row.refreshAfter, f.now() + 60);
+  } finally {
+    f.close();
+  }
+});
+
+test('a temporary failure after a quiet day retries soon, honouring retry_after', async () => {
+  const f = await fixture();
+  try {
+    await f.otc.refreshPilot();
+    f.advance(86400);
+    f.state.onGetChat = telegramError(429, { retry_after: 120 });
+    await f.handler(event(f));
+    const row = await f.chatState.getChatRow(chatId);
+    assert.equal(row.botStatus, 'unverified');
+    assert.equal(row.refreshAfter, f.now() + 120);
+    f.advance(120);
+    f.state.onGetChat = telegramError(502);
+    await f.handler(event(f, 2));
+    assert.equal(
+      (await f.chatState.getChatRow(chatId)).refreshAfter,
+      f.now() + 60,
+    );
+    f.advance(60);
+    f.state.onGetChat = null;
+    await f.handler(event(f, 3));
+    assert.ok(f.chatState.verifiedAdmin(await f.chatState.getChatRow(chatId)));
+    assert.equal(messageCount(f), 1);
+  } finally {
+    f.close();
+  }
+});
+
+test('losing access during an early renewal pauses collection at once', async () => {
+  const f = await fixture();
+  try {
+    await f.otc.refreshPilot();
+    f.advance(270);
+    f.state.onGetChat = telegramError(403);
+    await f.handler(event(f));
+    assert.equal(messageCount(f), 0);
     assert.equal(
       (await f.chatState.getChatRow(chatId)).botStatus,
       'unverified',
     );
+    assert.equal((await f.endpoint({}, viewer)).entries.length, 0);
+  } finally {
+    f.close();
+  }
+});
+
+test('a promotion dated slightly ahead of the server clock still enrols the group', async () => {
+  const f = await fixture();
+  try {
+    await f.otc.recordMembershipChange(
+      membership(f, 'administrator', f.now() + 20),
+      1,
+    );
+    const row = await f.chatState.getChatRow(chatId);
+    assert.ok(f.chatState.verifiedAdmin(row));
+    assert.equal(row.metadataLeaseUntil, 0);
+    assert.equal((await f.endpoint({}, viewer)).entries.length, 1);
+  } finally {
+    f.close();
+  }
+});
+
+test('maintenance renews a verification during its last minute, as collection does', async () => {
+  const f = await fixture();
+  try {
+    await f.otc.refreshPilot();
+    const renewals = () =>
+      f.calls.filter((call) => call.method === 'getChat').length;
+    f.advance(230); // 70 s left: too early
+    await f.maintenance.maintainDirectory({ metadataOnly: true });
+    assert.equal(renewals(), 1);
+    f.advance(20); // 50 s left: renew
+    await f.maintenance.maintainDirectory({ metadataOnly: true });
+    assert.equal(renewals(), 2);
+    f.advance(5); // just renewed: nothing to repeat
+    await f.maintenance.maintainDirectory({ metadataOnly: true });
+    assert.equal(renewals(), 2);
   } finally {
     f.close();
   }
@@ -369,6 +452,32 @@ test('an admin scan survives a routine metadata renewal', async () => {
         .visibleUniqueGifts,
       1,
     );
+  } finally {
+    f.close();
+  }
+});
+
+test('a paid-price change does not discard an admin scan in progress', async () => {
+  const f = await fixture();
+  try {
+    await f.otc.refreshPilot();
+    const gate = deferred();
+    let pending = false;
+    f.state.gifts = async ({ user_id }) => {
+      if (user_id !== 41) return { gifts: [] };
+      pending = true;
+      return await gate.promise;
+    };
+    const scan = f.otc.samplePilotAdmins();
+    await until(() => pending);
+    await f.handler({
+      ...event(f, 7),
+      text: undefined,
+      paid_message_price_changed: { paid_message_star_count: 500 },
+    });
+    gate.resolve({ gifts: [gift('Gift-1')] });
+    assert.ok(await scan);
+    assert.equal((await f.chatState.getChatRow(chatId)).starsPerMessage, 500);
   } finally {
     f.close();
   }
