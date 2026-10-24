@@ -201,13 +201,9 @@ export function createCard(entry, options) {
 
     const footer = element('div', 'card-bottom');
     footer.append(likeButton(entry, options));
-    if (mode === 'large' && username) {
-      const open = element('a', 'open-chat', 'Open chat ↗');
-      open.href = `https://t.me/${username}`;
-      open.target = '_blank';
-      open.rel = 'noopener noreferrer';
-      footer.append(open);
-    } else if (age) footer.append(element('span', 'updated', age));
+    // Large cards already show the estimate age beside the gift value.
+    if (mode === 'normal' && age)
+      footer.append(element('span', 'updated', age));
     card.append(footer);
   }
 

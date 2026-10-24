@@ -18,9 +18,10 @@ change that card individually; selecting a global size clears individual overrid
 Compact cards prioritize posting price, likes, messages/day and admin gift value.
 Normal cards add members, admin gift count, known language and estimate age. Large
 cards show the exact gift value/count, members, daily activity, language and last
-post once, plus an Open chat action. Technical scan reports stay out of the cards.
-The UI has no app-name heading, separate dashboard sections, hover effects or
-tooltips. The search box matches OTC names only: the group title or @username.
+post once. Tapping anywhere on a card opens the OTC in Telegram, except its like
+and expand buttons. Technical scan reports stay out of the cards. The UI has no
+app-name heading, separate dashboard sections, hover effects, tooltips or page
+zoom. The search box matches OTC names only: the group title or @username.
 The shared list contains real, verified public OTCs; no example marketplaces enter
 live results.
 

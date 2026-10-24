@@ -31,6 +31,9 @@ const haptics = supports('6.1') ? webApp.HapticFeedback : null;
 const backButton = supports('6.1') ? webApp.BackButton : null;
 if (performanceClass(navigator.userAgent) === 'LOW')
   document.documentElement.dataset.performance = 'low';
+// Zoom is off (index.html, style.css); Safari ignores the viewport limit, so
+// cancel its pinch gesture as well.
+document.addEventListener('gesturestart', (event) => event.preventDefault());
 
 // Storage can be unavailable inside a webview; choices then last one session.
 function recall(key, allowed, fallback) {

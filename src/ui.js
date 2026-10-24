@@ -43,7 +43,7 @@ function setText(node, value) {
   if (node.textContent !== value) node.textContent = value;
 }
 // Card controls that keep their node, and focus, across updates.
-const CONTROLS = ['card-view', 'like-button', 'group-name', 'open-chat'];
+const CONTROLS = ['card-view', 'like-button', 'group-name'];
 function childKey(node) {
   if (node.nodeType !== 1) return null;
   if (node.dataset.metric) return `metric:${node.dataset.metric}`;

@@ -37,6 +37,14 @@ displayed as page branding. The directory currently contains only Free Market.
 
 ## Authorized pilot
 
+### Whole-card taps and no zoom — 2026-10-24
+
+Tapping anywhere on a card opens the OTC in Telegram; the like and expand
+buttons keep their own actions. The name link stretches over the card, so the
+card stays one real link for keyboards and screen readers. Large cards no longer
+show an Open chat button. Pinch and double-tap zoom are off, so an accidental
+double tap no longer enlarges the page.
+
 ### Search and hover cleanup — 2026-10-24
 
 The search box reads "Search OTCs" and matches names only: the group title or

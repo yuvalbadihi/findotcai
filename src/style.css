@@ -22,10 +22,12 @@
   --safe-left: calc(max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px)) + var(--tg-content-safe-area-inset-left, 0px));
 }
 * { box-sizing: border-box; }
+/* No double-tap zoom anywhere; index.html also turns off pinch zoom. */
+html { touch-action: manipulation; }
 body { margin: 0; min-width: 280px; background: var(--bg); color: var(--text); }
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
-button { cursor: pointer; touch-action: manipulation; }
+button { cursor: pointer; }
 button:disabled { cursor: default; opacity: .45; }
 button, input, select { color: var(--text); }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
@@ -67,7 +69,11 @@ h1 { margin: 0; font-size: 10px; letter-spacing: .65px; font-weight: 500; color:
 .status:empty { display: none; }
 .status[data-state=error] { color: var(--error); }
 .cards { display: grid; gap: 9px; }
-.otc-card { padding: 12px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); min-width: 0; }
+.otc-card { position: relative; padding: 12px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); min-width: 0; }
+/* The whole card opens the OTC: the name link stretches over the card, and the
+   like and expand buttons sit above it with their own actions. */
+a.group-name::after { content: ''; position: absolute; inset: 0; }
+.like-button, .card-view { position: relative; z-index: 1; }
 .card-top { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .group-name { display: inline-flex; align-items: center; gap: 5px; min-width: 0; margin-right: auto; color: var(--text); text-decoration: none; font-size: 15px; font-weight: 650; letter-spacing: -.3px; }
 .group-name > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -100,7 +106,6 @@ h1 { margin: 0; font-size: 10px; letter-spacing: .65px; font-weight: 500; color:
 .valuation-summary .currency-icon { width: 23px; height: 23px; }
 .valuation-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 7px; margin-top: 8px; font-size: 10px; color: var(--muted); }
 .card-bottom { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-top: 13px; color: var(--muted); font-size: 10px; }
-.open-chat { display: inline-flex; align-items: center; padding: 8px 11px; border-radius: 8px; background: var(--blue-bg); color: var(--blue); font-size: 11px; font-weight: 550; text-decoration: none; }
 .updated { display: inline-flex; align-items: center; gap: 4px; }
 .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 14px; padding: 16px 0 0; margin: 16px 0 0; border-top: 1px solid var(--line); }
 .detail-grid div { min-width: 0; }

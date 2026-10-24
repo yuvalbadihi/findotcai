@@ -365,6 +365,29 @@ try {
   // Card group links open inside Telegram too.
   await page.locator('.group-name').click();
   assert.equal(await page.evaluate(()=>window.openedLink),'https://t.me/freemarket');
+  // A tap anywhere on a card opens the OTC (force: the name link covers the card,
+  // as for a real tap); the like and expand buttons keep their own actions.
+  const opened=async()=>{const url=await page.evaluate(()=>window.openedLink);await page.evaluate(()=>{window.openedLink=null;});return url;};
+  await opened();
+  await page.locator('.otc-card .frequency').click({force:true});
+  assert.equal(await opened(),'https://t.me/freemarket');
+  await page.locator('.otc-card .card-view').click();
+  assert.equal(await page.locator('.otc-card').getAttribute('data-mode'),'large');
+  assert.equal(await page.locator('.open-chat').count(),0);
+  await page.locator('.otc-card .detail-grid').click({force:true});
+  assert.equal(await opened(),'https://t.me/freemarket');
+  for(let i=0;i<2;i++){
+    const before=await page.locator('.otc-card .like-button').getAttribute('aria-pressed');
+    await page.locator('.otc-card .like-button').click();
+    await page.waitForFunction((value)=>document.querySelector('.otc-card .like-button').getAttribute('aria-pressed')!==value,before);
+  }
+  await page.locator('.otc-card .card-view').click();
+  await page.locator('.otc-card .card-view').click();
+  assert.equal(await page.locator('.otc-card').getAttribute('data-mode'),'normal');
+  assert.equal(await opened(),null);
+  // Pinch and double-tap zoom are off.
+  assert.match(await page.locator('meta[name=viewport]').getAttribute('content'),/maximum-scale=1\.0, user-scalable=no/);
+  assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).touchAction),'manipulation');
   // Telegram's header, background and bottom bar follow every theme choice.
   const chrome=()=>page.evaluate(()=>({...window.painted,page:getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(),meta:document.querySelector('meta[name=theme-color]').content}));
   const keyed=(color)=>({header:'secondary_bg_color',background:'secondary_bg_color',bottomBar:'secondary_bg_color',page:color,meta:color});
