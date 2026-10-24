@@ -30,6 +30,8 @@ async function until(predicate) {
   for (let i = 0; i < 100 && !predicate(); i++) await Promise.resolve();
   assert.ok(predicate());
 }
+const messageCount = (f) =>
+  f.sqlite.prepare('SELECT count(*) AS n FROM otc_messages').get().n;
 
 test('same-second membership events use update IDs, and a later date tolerates ID restart', async () => {
   const f = await fixture();
@@ -96,6 +98,85 @@ test('expired verification never lets concurrent messages through the refresh le
       f.sqlite.prepare('SELECT count(*) AS n FROM otc_messages').get().n,
       1,
     );
+  } finally {
+    f.close();
+  }
+});
+
+test('messages keep flowing while a verification is renewed before it lapses', async () => {
+  const f = await fixture();
+  try {
+    await f.otc.refreshPilot();
+    f.advance(270);
+    const gate = deferred();
+    let pending = false;
+    f.state.onGetChat = async () => {
+      pending = true;
+      await gate.promise;
+    };
+    const first = f.handler(event(f));
+    await until(() => pending);
+    await f.handler(event(f, 2));
+    assert.equal(messageCount(f), 1);
+    gate.resolve();
+    await first;
+    assert.equal(messageCount(f), 2);
+    assert.ok(f.chatState.verifiedAdmin(await f.chatState.getChatRow(chatId)));
+  } finally {
+    f.close();
+  }
+});
+
+test('a failed early renewal keeps the current verification until it lapses', async () => {
+  const f = await fixture();
+  try {
+    await f.otc.refreshPilot();
+    f.advance(270);
+    f.state.metadataError = true;
+    const attempts = () =>
+      f.calls.filter((call) => call.method === 'getChat').length;
+    await f.handler(event(f));
+    // The pilot refresh, then the failed early renewal; the message still counts.
+    assert.equal(attempts(), 2);
+    assert.equal(messageCount(f), 1);
+    f.advance(10);
+    await f.handler(event(f, 2));
+    assert.equal(attempts(), 2);
+    assert.equal(messageCount(f), 2);
+    f.advance(21);
+    await f.handler(event(f, 3));
+    assert.equal(messageCount(f), 2);
+    assert.equal(
+      (await f.chatState.getChatRow(chatId)).botStatus,
+      'unverified',
+    );
+  } finally {
+    f.close();
+  }
+});
+
+test('verification failures back off, and a membership event still re-verifies at once', async () => {
+  const f = await fixture();
+  try {
+    f.state.metadataError = true;
+    await assert.rejects(() =>
+      f.otc.recordMembershipChange(membership(f, 'administrator'), 1),
+    );
+    // A newly enrolled group retries within a minute...
+    assert.equal(
+      (await f.chatState.getChatRow(chatId)).refreshAfter,
+      f.now() + 60,
+    );
+    // ...but one that stays unreachable all day is not retried every minute.
+    for (let minute = 0; minute < 24 * 60; minute++) {
+      f.advance(60);
+      await f.maintenance.maintainDirectory({ metadataOnly: true });
+    }
+    const attempts = f.calls.filter((call) => call.method === 'getChat').length;
+    assert.ok(attempts < 50, `${attempts} verification attempts in a day`);
+    f.state.metadataError = false;
+    await f.otc.recordMembershipChange(membership(f, 'administrator'), 2);
+    assert.ok(f.chatState.verifiedAdmin(await f.chatState.getChatRow(chatId)));
   } finally {
     f.close();
   }
@@ -262,6 +343,32 @@ test('demotion hides the OTC immediately and invalidates an in-flight admin scan
     assert.equal(await scan, null);
     assert.equal((await f.endpoint({}, viewer)).entries.length, 0);
     assert.equal((await f.chatState.getChatRow(chatId)).adminSample, null);
+  } finally {
+    f.close();
+  }
+});
+
+test('an admin scan survives a routine metadata renewal', async () => {
+  const f = await fixture();
+  try {
+    await f.otc.refreshPilot();
+    const gate = deferred();
+    let pending = false;
+    f.state.gifts = async ({ user_id }) => {
+      if (user_id !== 41) return { gifts: [] };
+      pending = true;
+      return await gate.promise;
+    };
+    const scan = f.otc.samplePilotAdmins();
+    await until(() => pending);
+    await f.otc.refreshPilot();
+    gate.resolve({ gifts: [gift('Gift-1')] });
+    assert.ok(await scan);
+    assert.equal(
+      JSON.parse((await f.chatState.getChatRow(chatId)).adminSample)
+        .visibleUniqueGifts,
+      1,
+    );
   } finally {
     f.close();
   }

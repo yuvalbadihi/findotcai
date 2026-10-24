@@ -49,6 +49,19 @@ test('one vote per viewer survives concurrent retries and unlike only removes th
   } finally {f.close();}
 });
 
+test('a listed OTC stays likeable after its five-minute verification lapses', async () => {
+  const f = await enrolled();
+  try {
+    f.advance(301);
+    assert.ok(await listed(f,42));
+    const result = await f.likeEndpoint({chatId,liked:true},ctx(42));
+    assert.equal(result.available,true);
+    assert.equal(result.likes.count,1);
+    assert.equal(result.likes.likedByMe,true);
+    assert.equal((await listed(f,43)).likes.count,1);
+  } finally {f.close();}
+});
+
 test('client-supplied identities and totals cannot change ownership or fabricate votes', async () => {
   const f = await enrolled();
   try {

@@ -19,12 +19,13 @@ export async function setOtcLike(chatId, userId, liked) {
       code: 'INVALID_LIKE',
     });
   }
+  // Listed exactly as in the directory: the five-minute verification routinely
+  // lapses between refreshes, while known removals change bot_status at once.
   if (liked) {
-    const now = nowSeconds();
     await db.run(sql`INSERT INTO otc_likes (id,chat_id,user_id,created_at)
-      SELECT ${`${chatId}:${userId}`},${chatId},${userId},${now} FROM otcs WHERE chat_id=${chatId}
+      SELECT ${`${chatId}:${userId}`},${chatId},${userId},${nowSeconds()} FROM otcs WHERE chat_id=${chatId}
       AND username IS NOT NULL AND username!='' AND checked_at>0
-      AND bot_status IN ('administrator','creator') AND refresh_after>${now} ON CONFLICT DO NOTHING`);
+      AND bot_status IN ('administrator','creator') ON CONFLICT DO NOTHING`);
   } else {
     // A user can always remove their own preference, even after unlisting.
     await db.run(
@@ -33,8 +34,7 @@ export async function setOtcLike(chatId, userId, liked) {
   }
   const group =
     await db.get(sql`SELECT chat_id FROM otcs WHERE chat_id=${chatId}
-    AND username IS NOT NULL AND username!='' AND checked_at>0 AND bot_status IN ('administrator','creator')
-    AND (${liked ? 1 : 0}=0 OR refresh_after>${nowSeconds()})`);
+    AND username IS NOT NULL AND username!='' AND checked_at>0 AND bot_status IN ('administrator','creator')`);
   if (!group && liked)
     throw new EndpointError('This OTC is not listed.', {
       code: 'OTC_NOT_FOUND',

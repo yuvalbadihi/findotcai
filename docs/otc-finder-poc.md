@@ -37,6 +37,21 @@ displayed as page branding. The directory currently contains only Free Market.
 
 ## Authorized pilot
 
+### Verification and likes fixes — 2026-10-24
+
+- Likes use the directory's listing rule, so an OTC stays likeable while its
+  five-minute verification is between refreshes. Known removals still reject
+  new likes at once.
+- Collection renews a verification during its last minute. Messages arriving
+  during the renewal count under the current verification, and a renewal no
+  longer invalidates messages or admin scans already in progress. A failed early
+  renewal keeps the current verification until it lapses. After a lapse,
+  messages arriving during re-verification are still skipped: collection never
+  runs on an expired verification.
+- Failed verifications back off from one minute towards six hours while failures
+  persist, so departed or deleted groups stop consuming the shared maintenance
+  refresh. A membership event still re-verifies at once.
+
 ### Self-service OTC enrollment — 2026-10-24
 
 The **+** button opens Telegram's native add-as-admin flow using

@@ -1,7 +1,7 @@
 import { api, db } from 'sdk';
 import { eq, sql } from 'sdk/db';
 import { otcs } from '../schema.js';
-import { METADATA_TTL } from './otc-config.js';
+import { METADATA_TTL, RENEW_AHEAD } from './otc-config.js';
 
 export const nowSeconds = () => Math.floor(Date.now() / 1000);
 export const isAdmin = (status) =>
@@ -35,24 +35,31 @@ async function provisional(chatId, title = 'OTC') {
     .run();
 }
 
-export async function refreshChat(chatId, { force = false } = {}) {
+// `ahead` also renews a verification that lapses within that many seconds.
+export async function refreshChat(chatId, { force = false, ahead = 0 } = {}) {
   if (!Number.isSafeInteger(chatId) || chatId >= 0)
     throw new Error('Invalid group');
   if (!(await getChatRow(chatId))) await provisional(chatId);
   const started = nowSeconds();
+  // The lease value and the unchanged revision identify this job. Claiming
+  // leaves the revision alone, so messages and admin scans already in progress
+  // stay valid while a current verification is renewed.
+  const lease = started + 60;
   const claim =
-    await db.run(sql`UPDATE otcs SET metadata_lease_until=${started + 60}, revision=revision+1
+    await db.run(sql`UPDATE otcs SET metadata_lease_until=${lease}
     WHERE chat_id=${chatId} AND metadata_lease_until<=${started}
-    AND (refresh_after<=${started} OR ${force ? 1 : 0}=1) RETURNING revision`);
+    AND (refresh_after<=${started + ahead} OR ${force ? 1 : 0}=1)
+    RETURNING revision,bot_status,checked_at,refresh_after,started_at,status_event_at`);
   if (!claim.rows?.length) return await getChatRow(chatId);
-  const version = claim.rows[0].revision;
+  const job = claim.rows[0];
+  const version = job.revision;
   try {
     const me = await api.getMe({});
     const member = await api.getChatMember({ chat_id: chatId, user_id: me.id });
     if (!isAdmin(member.status)) {
       await db.run(sql`UPDATE otcs SET bot_status=${member.status}, active_since=0,
         metadata_lease_until=0,refresh_after=${started + METADATA_TTL},admin_scan_version=admin_scan_version+1
-        WHERE chat_id=${chatId} AND revision=${version} AND status_event_at<=${started}`);
+        WHERE chat_id=${chatId} AND revision=${version} AND metadata_lease_until=${lease} AND status_event_at<=${started}`);
       return await getChatRow(chatId);
     }
     const chat = await api.getChat({ chat_id: chatId });
@@ -75,13 +82,30 @@ export async function refreshChat(chatId, { force = false } = {}) {
       stars_per_message=CASE WHEN price_event_at<=${started} THEN ${price} ELSE stars_per_message END,
       bot_status=${member.status},checked_at=${now},refresh_after=${now + METADATA_TTL},metadata_lease_until=0,
       active_since=CASE WHEN active_since>0 THEN active_since ELSE ${now} END
-      WHERE chat_id=${chatId} AND revision=${version} AND status_event_at<=${started}`);
+      WHERE chat_id=${chatId} AND revision=${version} AND metadata_lease_until=${lease} AND status_event_at<=${started}`);
     return await getChatRow(chatId);
   } catch (error) {
-    // Only the holder of this generation can fail or complete the job.
+    // Only the holder of this job can fail or complete it. A failed early
+    // renewal keeps the verification it was renewing and retries shortly, at
+    // the latest when that verification lapses.
+    const now = nowSeconds();
+    if (
+      isAdmin(job.bot_status) &&
+      job.checked_at > 0 &&
+      job.refresh_after > now
+    ) {
+      await db.run(sql`UPDATE otcs SET metadata_lease_until=${Math.min(now + 30, job.refresh_after)}
+        WHERE chat_id=${chatId} AND revision=${version} AND metadata_lease_until=${lease}`);
+      throw error;
+    }
+    // Otherwise pause collection. Retries back off from a minute towards six
+    // hours while failures persist, so a departed group stops costing a refresh
+    // every minute; a membership event still re-verifies at once.
+    const since = Math.max(job.checked_at, job.status_event_at, job.started_at);
+    const wait = Math.max(60, Math.min(21600, Math.floor((now - since) / 4)));
     await db.run(sql`UPDATE otcs SET bot_status='unverified',active_since=0,
-      metadata_lease_until=0,refresh_after=${nowSeconds() + 60}
-      WHERE chat_id=${chatId} AND revision=${version}`);
+      metadata_lease_until=0,refresh_after=${now + wait}
+      WHERE chat_id=${chatId} AND revision=${version} AND metadata_lease_until=${lease}`);
     throw error;
   }
 }
@@ -89,13 +113,16 @@ export async function refreshChat(chatId, { force = false } = {}) {
 export async function currentChat(chatId, { refreshMetadata = true } = {}) {
   let row = await getChatRow(chatId);
   if (!row) return null;
+  // Renew a current verification shortly before it lapses, so messages that
+  // arrive during the renewal are still covered by it.
+  const ahead = verifiedAdmin(row) ? RENEW_AHEAD : 0;
   if (
     refreshMetadata &&
-    row.refreshAfter <= nowSeconds() &&
+    row.refreshAfter <= nowSeconds() + ahead &&
     ['administrator', 'creator', 'unverified'].includes(row.botStatus)
   ) {
     try {
-      row = await refreshChat(chatId);
+      row = await refreshChat(chatId, { ahead });
     } catch {
       row = await getChatRow(chatId);
     }

@@ -3,6 +3,7 @@
 export const PILOT_CHAT_ID = -1002187584621;
 export const PILOT_USERNAME = 'freemarket';
 export const METADATA_TTL = 300;
+export const RENEW_AHEAD = 60; // renew a verification this long before it lapses
 export const GIFT_TTL = 86400;
 export const MESSAGE_RETENTION = 30 * 86400;
 
