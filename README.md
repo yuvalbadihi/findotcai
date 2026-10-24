@@ -16,7 +16,7 @@ page, following Telegram's Mini App design guidelines (details in
 [docs/otc-finder-poc.md](docs/otc-finder-poc.md)). Each card's chevron can still
 change that card individually; selecting a global size clears individual overrides.
 Compact cards prioritize posting price, likes, messages/day and admin gift value.
-Normal cards add members, admin gift count, known language and estimate age. Large
+Normal cards add members, admin gift count and known language. Large
 cards show the exact gift value/count, members, daily activity, language and last
 post once. Tapping anywhere on a card opens the OTC in Telegram, except its like
 and expand buttons. Technical scan reports stay out of the cards. The UI has no

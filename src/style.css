@@ -106,7 +106,6 @@ a.group-name::after { content: ''; position: absolute; inset: 0; }
 .valuation-summary .currency-icon { width: 23px; height: 23px; }
 .valuation-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 7px; margin-top: 8px; font-size: 10px; color: var(--muted); }
 .card-bottom { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-top: 13px; color: var(--muted); font-size: 10px; }
-.updated { display: inline-flex; align-items: center; gap: 4px; }
 .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 14px; padding: 16px 0 0; margin: 16px 0 0; border-top: 1px solid var(--line); }
 .detail-grid div { min-width: 0; }
 .detail-grid dt { color: var(--muted); font-size: 10px; line-height: 1.5; margin-bottom: 6px; }

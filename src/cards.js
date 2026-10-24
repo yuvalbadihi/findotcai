@@ -87,10 +87,6 @@ export function createCard(entry, options) {
     sample && sample.complete + sample.partial > 0
       ? sample.visibleUniqueGifts
       : null;
-  const timestamp = valuation?.checkedAt || sample?.checkedAt;
-  const age = timestamp
-    ? `${formatGram(valuation) === '—' ? 'Gifts checked' : 'Gift estimate'} · ${relativeTime(timestamp)}`
-    : '';
 
   if (mode === 'compact') {
     const strip = element('div', 'card-stats compact-stats');
@@ -172,8 +168,8 @@ export function createCard(entry, options) {
     card.append(summary);
 
     if (mode === 'large') {
-      const meta = element('div', 'valuation-meta');
       if (giftCount !== null) {
+        const meta = element('div', 'valuation-meta');
         const count = element(
           'span',
           '',
@@ -181,9 +177,8 @@ export function createCard(entry, options) {
         );
         count.dataset.metric = 'gift-count';
         meta.append(count);
+        card.append(meta);
       }
-      if (age) meta.append(element('span', '', age));
-      card.append(meta);
       const detail = element('dl', 'detail-grid');
       metric(detail, 'Members', formatNumber(group.memberCount), 'members');
       metric(detail, 'Messages / day', formatNumber(daily), 'daily');
@@ -201,9 +196,6 @@ export function createCard(entry, options) {
 
     const footer = element('div', 'card-bottom');
     footer.append(likeButton(entry, options));
-    // Large cards already show the estimate age beside the gift value.
-    if (mode === 'normal' && age)
-      footer.append(element('span', 'updated', age));
     card.append(footer);
   }
 
